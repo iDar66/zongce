@@ -59,3 +59,16 @@ def test_count_multiply_when_count_available():
     assert pr.mode == Mode.COUNT
     assert pr.points == 4.0   # per=1 × count=4
     assert pr.status == "自动"
+
+def test_bare_points_statement_uses_keyword_panel():
+    """final review N1：STMT 命中但 group(2)=None（裸"加2分"无数值后板块词）时，
+    应走 classify_panel 关键词兜底定板块，而非 panel=None 丢分。"""
+    text = "邓达俊参加篮球比赛，加2分"
+    pgs = [PageResult(lines=[OcrLine("邓达俊", (0, 0, 100, 30), 1.0)],
+                      text=text, width=1000, height=1000)]
+    ext = ExtractionResult(source="篮球比赛.pdf", pages=pgs, text=text, method="ocr", from_cache=False)
+    pr = predict(ext, "邓达俊")
+    assert pr.panel == "文体"          # "篮球" 关键词兜底
+    assert pr.mode == Mode.FIXED
+    assert pr.points == 2.0
+    assert pr.status == "自动"

@@ -54,7 +54,10 @@ def predict(extraction: ExtractionResult, name: str) -> Prediction:
     mode = classify_mode(text)
     stmt = rules.STMT_RE.search(text)
     # 裁决 1：brief 原写 fname（未定义）；改用 Path(src).name 取文件名喂给 classify_panel
-    panel = rules.normalize_panel(stmt.group(2)) if stmt else classify_panel(text, Path(src).name)
+    # final review N1：STMT 命中但 group(2)=None（裸"加2分"无数值后板块词）时，
+    # normalize_panel(None)=None 会丢板块→即使抽到值也不加分。改成 group(2) 在才走它，
+    # 否则 classify_panel 关键词兜底（如"篮球比赛加2分"→文体）。
+    panel = rules.normalize_panel(stmt.group(2)) if (stmt and stmt.group(2)) else classify_panel(text, Path(src).name)
 
     points = None; count = nm.count; status = "待确认"; note = ""
     if mode == Mode.COUNT:
