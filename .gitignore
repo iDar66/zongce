@@ -9,3 +9,4 @@ tests/fixtures/*.png
 输出/
 综测输出/
 .claude/
+.worktrees/
