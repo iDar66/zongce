@@ -1369,31 +1369,16 @@ git commit -m "feat(pipeline): 端到端流水线 + CLI，邓达俊基准通过"
 
 **2. 占位符扫描**：无 TBD/TODO；每个代码步含完整可运行代码；测试含真实断言值（4.0 / 1.0 / 待确认）。
 
-**3. 类型一致性**：`ExtractionResult/OcrLine/PageResult`（Task3）被 Task4/5 消费——签名一致；`NameMatch`（Task4）被 Task5 经 `find_name` 消费；`Prediction`（Task5）被 Task6/7 消费；`Mode` 在 classify（Task2）定义、predict（Task5）/pipeline（Task7）引用——一致。` Prediction.file` 在 Task6 organize_files 用 `Path(pr.file)`，pipeline 传 `f.name`（仅文件名）→ organize_files 里 `src.exists()` 会 False 而跳过复制！
+**3. 类型一致性**：`ExtractionResult/OcrLine/PageResult`（Task3）被 Task4/5 消费——签名一致；`NameMatch`（Task4）被 Task5 经 `find_name` 消费；`Prediction`（Task5）被 Task6/7 消费；`Mode` 在 classify（Task2）定义、predict（Task5）/pipeline（Task7）引用——一致。
 
-   ⚠️ **发现一个不一致**：pipeline 传给 predict 的是 `extract` 结果（`ext.source` 是**完整路径**），predict 里 `fname = Path(extraction.source).name` 取的是**纯文件名**存入 `Prediction.file`，而 organize_files 需要**完整路径**才能 `shutil.copy2`。
-   **修正**：`Prediction` 增加 `source_path` 字段存完整路径，`file` 仍存文件名用于展示；organize_files 用 `source_path` 拷贝。
-   → 已据此修订 Task 5/6 的契约：`Prediction` 增 `source_path: str` 字段；export `organize_files` 用 `Path(pr.source_path)`；pipeline 不变（predict 内 `source_path = extraction.source`）。**实现 Task 5 时按此加字段**（Task 5 代码块上方契约已含 `file`，实现者需补 `source_path`，并在 Task 6 `organize_files` 用它）。测试相应补：`test_organize_files_*` 构造 Prediction 时传 `source_path`。
+   ✅ **`Prediction.file` 契约（已直接落入 Task 5/6 代码，实现者照抄即可）**：`file` 存**完整源路径**（非 basename）。predict 里 `src = extraction.source` 直接作 `file`；export `organize_files` 用 `Path(pr.file)` 复制、`Path(pr.file).name` 取目标名；`export_excel` 项目列用 `Path(pr.file).stem` 展示。pipeline 抽取失败分支 `Prediction(file=str(f), ...)`。**无需新增字段**（曾考虑加 `source_path`，最终复用 `file`=完整路径，organize 本就用 `Path(pr.file)`，零改动）。
 
-   为避免歧义，最终 `Prediction` 契约定为：
-   ```python
-   @dataclass
-   class Prediction:
-       file: str            # 完整源路径（export 取 stem、organize 取 name）
-       source_path: str     # 完整路径，供 organize_files 复制
-       panel: str
-       mode: Mode | None
-       points: float | None
-       count: int | None
-       basis: str
-       status: str
-       note: str
-   ```
-   Task 5 实现：`Prediction(file=fname, source_path=extraction.source, ...)`；抽取失败分支 `Prediction(file=f.name, source_path=str(f), ...)`。
-   Task 6 `organize_files`：`src = Path(pr.source_path)`（替换原 `Path(pr.file)`）。
-   Task 6 测试构造 Prediction 时加 `source_path=str(src_a)` 等。
-
-**执行时按上述修正落地。**
+**4. 预检额外修正（已落入计划，实现者照抄）**：
+- Task 1 `test_fixed_re`：去掉 `or True` 永真，改为真实断言 `not FIXED_RE.search("加0.5品德分")`。
+- Task 6 `test_export_excel`：项目列存 stem，断言改 `"参赛"/"数模"`（非 `"参赛.pdf"`）。
+- Task 6 `test_organize_files_renames_duplicates`：用两个不同目录下的同名 `a.pdf` 模拟重名（原写法 `file="a.pdf"` 不存在→被跳过）。
+- pyproject `pythonpath = [".", "tests"]`：让测试里 `from conftest import need` 可解析。
+- Task 0 `.gitignore`：除计划列出的项，**另加 `.superpowers/` 与 `.claude/`**（SDD 工作区与本机 Claude 配置不入库）。
 
 ---
 

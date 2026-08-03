@@ -2,4 +2,10 @@ __pycache__/
 *.pyc
 .pytest_cache/
 .superpowers/
+tests/fixtures/*.pdf
+tests/fixtures/*.jpg
+tests/fixtures/*.png
+.cache/
+输出/
+综测输出/
 .claude/
