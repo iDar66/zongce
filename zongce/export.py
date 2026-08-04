@@ -5,10 +5,12 @@ import shutil
 from pathlib import Path
 import pandas as pd
 from .predict import Prediction
+from .score import ScoreReport
 from . import rules
 
 COLUMNS = ["类别", "项目", "级别/明细", "细则依据", "加分", "认定状态", "备注"]
 _ORDER = ["品德", "学业", "文体", "待确认"]
+SCORE_COLUMNS = ["板块", "raw", "基本分", "折算附加", "最终板块分", "班级最高 raw", "班级最高 raw 来源", "待确认项目"]
 
 def _detail(pr: Prediction) -> str:
     if pr.mode is None:
@@ -33,11 +35,29 @@ def _rows(predictions: list[Prediction]):
             yield [panel, f"▶ {panel} 附加 raw 合计：{auto:g}" +
                    (f"（另有 {pending} 项待确认）" if pending else ""), "", "", "", "", ""]
 
-def export_excel(predictions: list[Prediction], out_path) -> Path:
+def _score_rows(report: ScoreReport):
+    for name, panel in (("品德", report.moral), ("学业", report.academic), ("文体", report.sports)):
+        yield [
+            name,
+            panel.raw,
+            panel.base,
+            panel.additional,
+            panel.final,
+            panel.denominator if panel.denominator is not None else "",
+            panel.denominator_source,
+            panel.pending_count,
+        ]
+    yield ["综测总分", "", "", "", report.total, "", "", ""]
+
+
+def export_excel(predictions: list[Prediction], out_path, score_report: ScoreReport | None = None) -> Path:
     out_path = Path(out_path); out_path.parent.mkdir(parents=True, exist_ok=True)
     df = pd.DataFrame(_rows(predictions), columns=COLUMNS)
     with pd.ExcelWriter(out_path, engine="openpyxl") as x:
         df.to_excel(x, index=False, sheet_name="综测加分明细")
+        if score_report is not None:
+            score_df = pd.DataFrame(_score_rows(score_report), columns=SCORE_COLUMNS)
+            score_df.to_excel(x, index=False, sheet_name="综测评分预测")
     return out_path
 
 def organize_files(predictions: list[Prediction], out_dir) -> Path:

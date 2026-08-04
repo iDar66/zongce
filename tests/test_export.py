@@ -4,6 +4,19 @@ import openpyxl
 from zongce.predict import Prediction
 from zongce.classify import Mode
 from zongce.export import export_excel, organize_files
+from zongce.grades import GradeSummary
+from zongce.score import PanelScore, ScoreReport
+
+
+def _score_report() -> ScoreReport:
+    grades = GradeSummary("2025-2026", (), 53.0, 4559.0, 86.02, (), (1, 2))
+    return ScoreReport(
+        grades,
+        PanelScore(3.0, 70.0, None, 3.0, 73.0, None, "不适用", 1),
+        PanelScore(5.0, 68.816, 20.0, 4.0, 72.816, 25.0, "估算", 1),
+        PanelScore(1.0, 60.0, 40.0, 0.8, 60.8, 50.0, "估算", 0),
+        70.23,
+    )
 
 def _mk_predictions():
     return [
@@ -44,3 +57,16 @@ def test_organize_files_renames_duplicates(tmp_path):
     out = organize_files(preds, tmp_path / "归类2")
     names = sorted(p.name for p in (out / "文体").iterdir())
     assert names == ["a.pdf", "a_1.pdf"]
+
+
+def test_export_excel_adds_score_sheet_when_report_is_given(tmp_path):
+    out = export_excel(_mk_predictions(), tmp_path / "评分.xlsx", score_report=_score_report())
+
+    workbook = openpyxl.load_workbook(out)
+
+    assert workbook.sheetnames == ["综测加分明细", "综测评分预测"]
+    score_sheet = workbook["综测评分预测"]
+    headers = [cell.value for cell in score_sheet[1]]
+    values = " ".join(str(cell.value) for row in score_sheet.iter_rows() for cell in row if cell.value is not None)
+    assert "班级最高 raw 来源" in headers
+    assert "估算" in values
