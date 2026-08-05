@@ -15,11 +15,13 @@ def test_whitelist_match_returns_national_a():
     assert d.confidence == "高"
 
 
-def test_descriptive_match_provincial_b_for_province_society():
-    # 五一数模主办方=省一级学会 → 描述性命中省B（已知库未提供时）
-    d = decide_level("五一数学建模竞赛", "江苏省工业与应用数学学会", _empty_catalog())
-    assert d.level == Level.PROVINCIAL_B
+def test_descriptive_drops_provincial_society_to_school_c():
+    # 非 known 库竞赛、主办方=省一级学会 → 描述性兜底命中省B → 行业协(学)会主办降一级 → 校C
+    d = decide_level("某省级数学建模竞赛", "江苏省工业与应用数学学会", _empty_catalog())
+    assert d.level == Level.SCHOOL_C
     assert d.basis == "描述性"
+    assert d.confidence == "中"
+    assert "降一级" in d.note
 
 
 def test_known_competition_wuyi_drops_to_school_c():

@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
-"""竞赛定级：已知库 → 白名单 → 主办方性质描述性匹配。
+"""竞赛定级：已知库 → 白名单 → 主办方性质描述性匹配 → 行业协(学)会主办降一级。
 
-降一级不在此处通用执行——「行业协(学)会主办降一级」在学校认定上有不确定性
-（综测领域规则.md §3：「最终能否拿钱取决于学校怎么认定，申报前必须问辅导员」），
-故只由 KNOWN_COMPETITIONS 里逐项 encoded 的 final_level 体现；描述性路径保守返回基准级别。
+定级规则见综测领域规则.md §3「定级流程」：先按分类表定级，再对行业协(学)会主办降一级
+（序列 国A>国B>省A>省B>校C）。文中「最终能否拿钱取决于学校认定」指降级后奖金能否发放
+（下游 scholarship 步骤处理），不影响此处的级别判定本身。
 """
 from __future__ import annotations
 
@@ -73,10 +73,7 @@ def _descriptive_level(host: str) -> Level | None:
 
 
 def decide_level(competition: str, host: str, catalog: Catalog, known=None) -> LevelDecision:
-    """按 已知库 → 白名单 → 描述性 的顺序定级。
-
-    降一级仅在已知库条目的 final_level 中体现（保守策略：学校认定不确定，不通用降级）。
-    """
+    """按 已知库 → 白名单 → 描述性 → 行业协(学)会主办降一级 的顺序定级。"""
     known_hit = _match_known(competition, host, known)
     if known_hit:
         return LevelDecision(
@@ -92,4 +89,11 @@ def decide_level(competition: str, host: str, catalog: Catalog, known=None) -> L
     if desc is None:
         return LevelDecision(level=None, basis="未匹配", confidence="低",
                              note="主办方性质不明，待辅导员认定级别")
+    # 行业协(学)会主办 → 降一级（综测领域规则.md §3 定级流程第4步；序列 国A>国B>省A>省B>校C）
+    if "学会" in host or "协会" in host:
+        dropped = drop_one_level(desc)
+        return LevelDecision(
+            level=dropped, basis="描述性", confidence="中",
+            note=f"{desc.value}→行业协(学)会主办降一级→{dropped.value}；能否拿专项奖金取决于学校认定，申报前问辅导员",
+        )
     return LevelDecision(level=desc, basis="描述性", confidence="中", note="")
