@@ -23,6 +23,7 @@
 
 1. **Python 3.14 全局**（`C:\Python314`，`python` 即它），**不建 venv**。依赖已装好：`pymupdf`/`rapidocr-onnxruntime`/`rapidfuzz`/`pandas`/`openpyxl`/`pytest`/`PIL`/`cv2`。
 2. **全本地、不联网、不调云 API**——OCR 用本地 RapidOCR，这是隐私硬要求（处理同学 PII）。任何联网/云调用都是违规。
+   - **P3 唯一受限例外**：`zongce/ratio.py` 的 `_fetch_ratio_from_url` 可在 `online=True`（CLI `--allow-online` 显式开启，默认关）时 GET **公开的赛事官网公示 URL**，仅读获奖/参赛总数算比例。**仅公开赛事数据，绝不传输学生 PII**（姓名/学号/成绩/证明内容）；GET-only、不 POST、不提交表单；失败返回 None 不崩。除此之外任何模块不得联网。详见 `docs/superpowers/specs/2026-08-05-P3-scholarship-design.md` 与 `docs/综测领域规则.md §3`。
 3. **`tests/fixtures/` 含同学 PII**（姓名等）——**gitignored，绝不提交、绝不复制出项目目录**。fixture 靠 `python tests/populate_fixtures.py`（一次性）从 `D:\综测证明材料\大一` 拷 5 个样本进来。
 4. **稳 > 快 / 少返工**（用户明确要求，可靠性优先于首次速度）：
    - 交付的代码/脚本，写完自己先跑一遍。
