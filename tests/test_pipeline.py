@@ -138,3 +138,39 @@ def test_pipeline_p2_failure_keeps_p1_output(tmp_path):
     assert report.excel_path.exists()
     for panel in ("文体", "品德", "学业"):
         assert (report.organized_dir / panel).is_dir()
+
+
+def test_pipeline_without_competition_args_keeps_p1_p2_output(tmp_path):
+    """P3 回归守卫：不传竞赛参数 → scholarship_items is None，P1/P2 照常产出。"""
+    _ensure_all_fixtures()
+    report = run_pipeline("邓达俊", FIX, tmp_path, cache_dir=tmp_path / ".cache")
+    assert report.scholarship_items is None  # 不传竞赛参数 → 不进 P3
+    # P1 产出仍在
+    assert report.excel_path.exists()
+    for panel in ("文体", "品德", "学业"):
+        assert (report.organized_dir / panel).is_dir()
+
+
+def test_pipeline_wuyi_end_to_end_produces_scholarship_sheet(tmp_path):
+    """五一数模真实分类表端到端：校C、获奖比例通过、专项 sheet 出现。"""
+    import os
+    import pandas as pd
+
+    _ensure_all_fixtures()
+    catalog_path = "D:/综测证明材料/附件1.广东技术师范大学学科竞赛分类表（2026） .xls"
+    # 仅当真实分类表存在时跑（否则 skip）
+    if not os.path.exists(catalog_path):
+        import pytest
+        pytest.skip("真实分类表不存在，跳过端到端")
+    report = run_pipeline(
+        "邓达俊", FIX, tmp_path, cache_dir=tmp_path / ".cache",
+        catalog_path=catalog_path,
+    )
+    assert report.scholarship_items is not None
+    wuyi = [i for i in report.scholarship_items if "五一" in i.competition or "数学建模" in i.competition]
+    assert wuyi, "应识别出五一数模"
+    item = wuyi[0]
+    assert item.level.name == "SCHOOL_C"  # 五一数模 → 校C
+    assert item.gates["获奖比例"] == "通过"
+    sheets = pd.ExcelFile(report.excel_path).sheet_names
+    assert "专项奖学金预估" in sheets

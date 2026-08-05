@@ -5,12 +5,17 @@ import shutil
 from pathlib import Path
 import pandas as pd
 from .predict import Prediction
+from .scholarship import ScholarshipItem
 from .score import ScoreReport
 from . import rules
 
 COLUMNS = ["类别", "项目", "级别/明细", "细则依据", "加分", "认定状态", "备注"]
 _ORDER = ["品德", "学业", "文体", "待确认"]
 SCORE_COLUMNS = ["板块", "raw", "基本分", "折算附加", "最终板块分", "班级最高 raw", "班级最高 raw 来源", "待确认项目"]
+SCHOLARSHIP_COLUMNS = [
+    "竞赛", "奖项", "级别", "主办方资质", "获奖比例", "学校组织备案", "申报时间",
+    "奖金总额", "人均", "把握度", "待确认",
+]
 
 def _detail(pr: Prediction) -> str:
     if pr.mode is None:
@@ -50,7 +55,32 @@ def _score_rows(report: ScoreReport):
     yield ["综测总分", "", "", "", report.total, "", "", ""]
 
 
-def export_excel(predictions: list[Prediction], out_path, score_report: ScoreReport | None = None) -> Path:
+def _scholarship_rows(items: list[ScholarshipItem]):
+    """每行一竞赛：竞赛/奖项/级别/4门槛/奖金总额/人均/把握度/待确认。"""
+    for it in items:
+        yield [
+            it.competition,
+            it.award.value if it.award is not None else "",
+            it.level.value if it.level is not None else "",
+            it.gates.get("主办方资质", ""),
+            it.gates.get("获奖比例", ""),
+            it.gates.get("学校组织备案", ""),
+            it.gates.get("申报时间", ""),
+            it.prize_total,
+            it.prize_per_capita,
+            it.confidence,
+            "；".join(it.pending_notes) if it.pending_notes else "",
+        ]
+    # 末尾附互斥叠加提示行（管理办法：同一竞赛多奖取最高、不叠加）
+    yield ["提示：同一竞赛多奖项取最高、不叠加；专项奖学金互斥，同年仅享一项。"] + [""] * (len(SCHOLARSHIP_COLUMNS) - 1)
+
+
+def export_excel(
+    predictions: list[Prediction],
+    out_path,
+    score_report: ScoreReport | None = None,
+    scholarship_items: list[ScholarshipItem] | None = None,
+) -> Path:
     out_path = Path(out_path); out_path.parent.mkdir(parents=True, exist_ok=True)
     df = pd.DataFrame(_rows(predictions), columns=COLUMNS)
     with pd.ExcelWriter(out_path, engine="openpyxl") as x:
@@ -58,6 +88,9 @@ def export_excel(predictions: list[Prediction], out_path, score_report: ScoreRep
         if score_report is not None:
             score_df = pd.DataFrame(_score_rows(score_report), columns=SCORE_COLUMNS)
             score_df.to_excel(x, index=False, sheet_name="综测评分预测")
+        if scholarship_items:
+            sch_df = pd.DataFrame(_scholarship_rows(scholarship_items), columns=SCHOLARSHIP_COLUMNS)
+            sch_df.to_excel(x, index=False, sheet_name="专项奖学金预估")
     return out_path
 
 def organize_files(predictions: list[Prediction], out_dir) -> Path:

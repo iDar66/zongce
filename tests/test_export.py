@@ -70,3 +70,20 @@ def test_export_excel_adds_score_sheet_when_report_is_given(tmp_path):
     values = " ".join(str(cell.value) for row in score_sheet.iter_rows() for cell in row if cell.value is not None)
     assert "班级最高 raw 来源" in headers
     assert "估算" in values
+
+
+def test_export_excel_adds_scholarship_sheet_when_items_given(tmp_path):
+    """专项奖学金预估 sheet：items 非空时追加。"""
+    import pandas as pd
+    from zongce.catalog import Level
+    from zongce.scholarship import ScholarshipItem
+    # 复用现有 predictions fixture；这里只验证 sheet 出现
+    item = ScholarshipItem(
+        competition="五一数学建模竞赛", award=None, level=Level.SCHOOL_C,
+        gates={"主办方资质": "通过", "获奖比例": "通过", "学校组织备案": "待确认", "申报时间": "待确认"},
+        prize_total=0.0, prize_per_capita=0.0, confidence="中",
+        pending_notes=["校C：专项奖金不覆盖"], source="五一.pdf",
+    )
+    out = export_excel([], tmp_path / "r.xlsx", score_report=None, scholarship_items=[item])
+    sheets = pd.ExcelFile(out).sheet_names
+    assert "专项奖学金预估" in sheets
