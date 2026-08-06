@@ -146,7 +146,11 @@ def _build_scholarship_items(
         host = _extract_host(pr.basis)
         award_text = _extract_award_text(filename, pr.basis)
         team_size = overrides.get("team_size") or 1
-        team_size = max(1, int(team_size))
+        try:
+            team_size = max(1, int(team_size))
+        except (ValueError, TypeError):
+            # 认定文件写成非数字串（如「3人」）不应炸掉整个 P3 段——降级为单人。
+            team_size = 1
 
         candidate = CompetitionCandidate(
             competition=competition,

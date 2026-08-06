@@ -139,6 +139,8 @@ def evaluate_competition(
     # 而「获奖比例≤50%」是生死线门槛——盲信有误判风险，提示人工核对。
     if ratio_result.source == "联网":
         pending.append("获奖比例来自联网公示启发式解析，请人工核对官网公示与公式")
+    if host_gate == "待确认":
+        pending.append("主办方资质待确认，请提供主办方性质说明（如学会/协会/政府部门）")
     if organized_by_school is None:
         pending.append("学校组织备案待确认")
     if in_time_window is None:
