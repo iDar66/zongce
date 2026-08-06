@@ -11,10 +11,10 @@
 - **P2（已完成）**：评分引擎——成绩单→基本分 + 附加封顶折算 + 总分（品德×0.20 + 学业×0.65 + 文体×0.15）。模块 `grades.py`/`score.py`，CLI `--grade-file`。
 - **P3（已完成）**：专项奖学金（竞赛类）判定——4 门槛（主办方资质 / 获奖比例≤50% / 学校组织备案 / 申报时间）+ 奖金公式 + 五一数模端到端（库内零联网→校C）。模块 `catalog.py`/`level.py`/`ratio.py`/`scholarship.py`，CLI `--catalog`/`--competition-file`/`--allow-online`，导出增「专项奖学金预估」sheet。
 
-## 当前状态（截至 master = 4903997）
+## 当前状态（截至 master = b31b6e6；已上传 GitHub `iDar66/zongce`，公开 / MIT）
 
 - P1/P2/P3 三期均完成，**全量 78 测试绿**；每期都经「每任务独立 review + 整分支 final review」后 ff-merge 进 master，零 Critical/Important。
-- 工作分支就是 `master`（无 remote、从不 push）。P1 直接在 master 上做；P2/P3 在独立 git worktree 里做、完成后 ff-merge 回 master。
+- 工作分支是 `master`，已有公开远端 `origin → github.com/iDar66/zongce`（MIT）。P1 直接在 master 上做；P2/P3 在独立 git worktree 里做、完成后 ff-merge 回 master。2026-08-06 上传 GitHub 前用 `git filter-repo` 清洗了历史中 3 处同学姓名。
 - SDD ledger（**gitignored、随 worktree 存在，worktree 删了就没**）：主工作树里只有 P1 的 `.superpowers/sdd/2026-08-03-P1-pdf-pipeline/progress.md`；P2/P3 的 ledger 在各自 worktree。**parked follow-up 已沉淀到本文件末尾「已知 parked follow-up」段，不依赖 ledger**。
 - 设计/规格/计划（已提交、durable）：`docs/superpowers/specs/`（P2/P3 设计）+ `docs/superpowers/plans/`（P1/P2/P3 实现计划）。
 - **综测领域口径**：`docs/综测领域规则.md`——事实依据，改 P2/P3 前必读。
@@ -30,7 +30,7 @@
    - 用第三方库/API 返回值，先 `print(type(x))`/看前几项确认结构，再处理。
    - 被质疑时先查证（读代码/查事实）再解释，别先编理由。
    - 不可逆操作（删文件、覆盖重要文件、对外发送）动手前确认。
-5. **无 git remote，从不 push**；`master` 是工作分支，直接在上面经 review 合并。
+5. **远端**：`origin → github.com/iDar66/zongce`（公开）。push 前确认无 PII 泄漏（`tests/fixtures/` 已 gitignore）；本机 Clash 代理(7897)未开时用 `git -c http.proxy= -c https.proxy= push` 走直连。
 6. **Windows 下 git 的 `LF will be replaced by CRLF` 警告无害**——**不要**加 `.gitattributes` 去"修"它。
 7. **代码风格照搬既有模块**：文件头 `# -*- coding: utf-8 -*-` + 中文 docstring；`from __future__ import annotations`；用 `dataclass`；中文注释说清"为什么"；模块职责单一、文件聚焦。
 
@@ -95,7 +95,7 @@ P1 模块明细表见下；P2/P3 模块契约见各自 spec/plan 与模块头 do
 - export.py 若干 brief-verbatim 代码风格项（seen→set、三元 setdefault 冗余等）。
 - houqin 源 PDF 真实次数待人工核对（工具输出走默认 1，自洽）。
 
-**P3**（整分支 final review triage 后的可延后项，详见 P3 ledger；合并前必修的 2 条已在 4903997 修复）：
+**P3**（整分支 final review triage 后的可延后项，详见 P3 ledger；合并前必修的 2 条已在 9170327 修复）：
 - `level.py` `KNOWN_COMPETITIONS` 的 `host_keyword`/`base_level`/`drop_one` 三字段未被读取（dead data），`_match_known` 的 host 参数也未用——**加第 2 条已知竞赛前必须先处理**（删字段 or 让匹配真正用上 host）。
 - 已知库子串匹配方向不一致：`level.py` 用 `key in competition`，`ratio.py` 用 `competition in k`——加第 2 条已知竞赛时统一。
 - `ratio.py` 联网解析：正则命中页面任意百分比无语义裁决、decode 硬编码 utf-8（GBK 公示页→乱码→返 None）、user_ratio 无 [0,1] 范围校验（误填 45→4500%）。均已通过 source="联网"→人工核对 + 失败返 None 缓解。
