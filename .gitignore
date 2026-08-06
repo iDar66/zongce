@@ -1,13 +1,27 @@
+# Python
 __pycache__/
 *.pyc
+*.egg-info/
 .pytest_cache/
-.superpowers/
-tests/fixtures/*.pdf
-tests/fixtures/*.jpg
-tests/fixtures/*.jpeg
-tests/fixtures/*.png
+.coverage
+htmlcov/
+build/
+dist/
+.venv/
+venv/
+
+# 测试 fixture 含同学 PII（姓名等），绝不提交、绝不外传
+tests/fixtures/
+
+# OCR / 运行产物
 .cache/
 输出/
 综测输出/
+
+# AI 协作 scratch（不入库；设计文档在 docs/ 下，是入库的）
+.superpowers/
 .claude/
 .worktrees/
+._review*/
+.pytest-cache*/
+.pytest-tmp*/
